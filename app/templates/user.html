@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}My Strategy{% endblock %}
+<style type="text/css">
+    ul.strategies {list-style-type: circle;
+};
+</style>
+{% block page_content %}
+<div class="page-header">
+    <h1>Hello, {% if current_user.is_authenticated %}{{ current_user.username }}{% else %}Stranger{% endif %}!</h1>
+</div>
+
+<ul class="strategies">
+    <li class="new-strategy">
+        <div class="new-strategy"><a href="{{ url_for('rqalpha.new_result') }}"><h3>New Strategy</h3></a></div>
+    </li>
+    {% for strategy in strategies %}
+    <li class="strategy">
+        <div id="strategy-content" style="width: 600px;height: 700px">
+            <div class="strategy-name"><a href="{{ url_for('rqalpha.result', strategyname=strategy.strategyname) }}"><h3>{{ strategy.strategyname }}</h3></a></div>
+            <div class="delete-strategy"><a href="{{ url_for('main.delete', username=current_user.username, strategyname=strategy.strategyname) }}">Delete</a></div>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}
