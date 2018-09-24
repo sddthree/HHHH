@@ -2,6 +2,8 @@
 
 {% block title %}UICquant{% endblock %}
 
+
+<div class="whole_container">
 {% block head %}
 {{ super() }}
 <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
@@ -9,8 +11,20 @@
 {% endblock %}
 
 {% block navbar %}
+<style type="text/css">
+    .whole_container{
+        display: flex;
+        flex-direction: column;
+    }
+    .container{
+        height: auto;
+        width: 100%;
+        padding-left: : 30px;
+        padding-right: 30px;
+    }
+</style>
 <div class="navbar navbar-inverse" role="navigation">
-    <div class="container">
+    <div class="container-content">
         <div class="navbar-header">
             <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
                 <span class="sr-only">Toggle navigation</span>
@@ -53,7 +67,7 @@
     {% block page_content %}{% endblock %}
 </div>
 {% endblock %}
-
+</div>
 {% block scripts %}
 {{ super() }}
 {{ moment.include_moment() }}
