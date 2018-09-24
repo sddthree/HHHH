@@ -1,0 +1,401 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}My Strategy{% endblock %}
+
+{% block head %}
+<script src="{{ url_for('static', filename='jquery-3.1.1.js') }}"></script>
+<script src="{{ url_for('static', filename='echarts.js') }}"></script>
+<script src="http://code.jquery.com/jquery-1.8.0.min.js" type="text/javascript"></script>
+
+{{ super() }}
+{{ codemirror.include_codemirror() }} 
+{% endblock %}
+
+{% block page_content %}
+
+<style type="text/css">
+
+.result-container{
+    display: flex;
+    flex-direction: row;
+    width: 1173px;
+    height: auto;
+}
+.code-area{
+    width: auto;
+    height:auto;
+    border-right:1px;
+    border-right-style: solid;
+    border-right-color: #666;
+}
+.picture{
+    display: flex;
+    flex-direction: column;
+}
+#main2 {
+    height:100px;
+    width: 500px;
+    padding:10px;
+    padding-left: 20px;
+}
+#main {
+    height:300px;
+    width:500px;
+    padding:10px;
+    padding-left: 20px;
+}
+.selection-area{
+    width: 100%;
+    height: 50px;
+    border-color: #666;
+    border-style: solid;
+    border-radius: : 1px;     
+}
+.container{
+    display: flex;
+    flex-direction: column;
+}
+
+grid:{
+
+top:"50px",
+
+left:"5px",
+
+right:"5px",
+
+bottom:"50px",
+
+backgroundColor: '#fff',
+
+width:"auto", //图例宽度
+
+height:"100%", //图例高度
+
+}
+
+
+</style>
+<div class="container">
+    <div class="selection-area">
+    </div>
+    <div class="result-container">
+        <div class='code-area'>
+            <textarea rows="10" cols="30">
+                我是一个文本框。
+            </textarea>
+        </div>
+
+        <div class='picture'>
+            <div id="main2"></div>
+            <div id="main"></div>
+        </div>
+    </div>
+</div>
+
+
+
+<!--为ECharts准备一个具备大小（宽高）的Dom-->
+
+
+<script type="text/javascript">
+    //--- 折柱 ---
+    var myChart = echarts.init(document.getElementById('main'));
+
+
+
+
+    myChart.setOption({
+        title: {
+            text: '回测示例'
+        },
+        tooltip: {},
+        legend: {
+            data:['portfolio','benchmark_portfolio']
+        },
+        toolbox: {
+            show: true,
+            feature: {
+                dataZoom: {
+                    yAxisIndex: 'none'
+                },
+                dataView: {readOnly: false},
+                magicType: {type: ['line', 'bar']},
+                restore: {},
+                saveAsImage: {}
+            }
+        },
+        xAxis: {
+            name: 'Days',
+            data: []
+        },
+        yAxis: {
+            name:"累积收益"
+        },
+        dataZoom: [
+        {   // 这个dataZoom组件，默认控制x轴。
+            type: 'slider', // 这个 dataZoom 组件是 slider 型 dataZoom 组件
+            start: 0,      // 左边在 0% 的位置。
+            end: 100         // 右边在 100% 的位置。
+        }
+        ],
+        series: [{
+            name: 'portfolio',
+            type: 'line',
+            data: []
+        },{
+            name: 'benchmark_portfolio',
+            type: 'line',
+            data: []
+        },]
+    });
+
+
+    var myChart2 = echarts.init(document.getElementById('main2'));
+    option2 = {
+        series: [
+        {
+            type: 'scatter',
+            data: [
+            {
+                value: [0,0],
+                label: {
+                    normal: {
+                        formatter: [
+                        '{tc|Summary}{titleBg|}',
+                        String([]),
+                        ].join('\n'),
+                        rich: {
+                            titleBg: {
+                                align: 'right'
+                            }
+                        }
+                    }
+                }
+            },
+
+            ],
+            symbolSize: 1,
+            label: {
+                normal: {
+                    show: true,
+                    backgroundColor: '#ddd',
+                    borderColor: '#555',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    color: '#000',
+                    fontSize: 14,
+                    rich: {
+                        titleBg: {
+                            backgroundColor: '#000',
+                            height: 30,
+                            borderRadius: [5, 5, 0, 0],
+                            padding: [0, 10, 0, 10],
+                            width: '100%',
+                            color: '#eee'
+                        },
+                        tc: {
+                            align: 'center',
+                            color: '#eee'
+                        },
+                        hr: {
+                            borderColor: '#777',
+                            width: '100%',
+                            borderWidth: 0.5,
+                            height: 0
+                        },
+
+                    }
+                }
+            }
+        }
+        ],
+        xAxis: {
+            axisLabel: {show: false},
+            axisLine: {show: false},
+            splitLine: {show: false},
+            axisTick: {show: false},
+            min: -1,
+            max: 1
+        },
+        yAxis: {
+            axisLabel: {show: false},
+            axisLine: {show: false},
+            splitLine: {show: false},
+            axisTick: {show: false},
+            min: 0,
+            max: 2,
+            inverse: true
+        }
+    };
+
+    myChart2.setOption(option2);
+
+    // 四个全局变量：月份、蒸发量、降水量、  哨兵（用于POST）
+    var month = [],
+    evaporation = [],
+    precipitation = [],
+    total_returns = "",
+    annualized_returns = "",
+    benchmark_total_returns = "",
+    benchmark_annualized_returns = "",
+    sharpe = "",
+    maxDD = "",
+    maxDDD = "",
+        number = 1,//pickle_record_number
+        lastID = 0; // 哨兵，记录上次数据表中的最后id +1（下次查询只要>=lastID）
+
+
+    //准备好统一的 callback 函数
+    var update_mychart = function (data) { //data是json格式的response对象
+
+        myChart.hideLoading(); // 隐藏加载动画
+
+        dataLength = data.month.length //取回的数据长度
+        lastID += dataLength //哨兵，相应增加。
+        number += 1 //pickle(x)
+
+        // 切片是能统一的关键！！
+        month = month.concat(data.month) // 数组，先切片、再拼接
+        evaporation = evaporation.concat(data.evaporation.map(parseFloat)) //注意map方法
+        precipitation = precipitation.concat(data.precipitation.map(parseFloat))
+        total_returns = data.total_returns
+        annualized_returns = data.annualized_returns
+        benchmark_total_returns = data.benchmark_total_returns
+        benchmark_annualized_returns = data.benchmark_annualized_returns
+        sharpe = data.sharpe
+        maxDD = data.maxDD
+        maxDDD = data.maxDDD
+
+        // 填入数据
+        myChart.setOption({
+            legend: {
+                data:['portfolio','benchmark_portfolio']
+            },
+            xAxis: {
+                data: month
+            },
+            series: [{
+                name: 'portfolio', // 根据名字对应到相应的系列
+                data: evaporation
+            },{
+                name: 'benchmark_portfolio',
+                data: precipitation
+            }]
+        });
+
+
+        option2 = {
+            series: [
+            {
+                type: 'scatter',
+                data: [
+                {
+                    value: [0,0],
+                    label: {
+                        normal: {
+                            formatter: [
+                            '{tc|Summary}{titleBg|}',
+                            '{tr|回测收益}' + "    " + '{tr|回测年化收益}' + "    " + '{tb|基准收益}' + "    " + '{tb|基准年化收益}' + "    " + '{tc|夏普比率}',
+                            String(total_returns) + '          ' + String(annualized_returns) + '           ' + String(benchmark_total_returns) + '         ' + String(benchmark_annualized_returns) + '          ' + String(sharpe),
+                            ].join('\n'),
+                            rich: {
+                                titleBg: {
+                                    align: 'right'
+                                }
+                            }
+                        }
+                    }
+                },
+
+                ],
+                symbolSize: 1,
+                label: {
+                    normal: {
+                        show: true,
+                        backgroundColor: '#eee',
+                        borderColor: '#fff',
+                        borderWidth: 1,
+                        borderRadius: 5,
+                        color: '#000',
+                        fontSize: 14,
+                        rich: {
+                            titleBg: {
+                                backgroundColor: '#fff',
+                                height: 30,
+                                borderRadius: [5, 5, 0, 0],
+                                padding: [0, 10, 0, 10],
+                                width: '100%',
+                                color: '#eee'
+                            },
+                            tc: {
+                                align: 'center',
+                                color: '#000'
+                            },
+                            tr:{
+                                align:'center',
+                                color:'#911'
+                            },
+                            tb:{
+                                align:'center',
+                                color:'#32e'
+                            },
+                            hr: {
+                                borderColor: '#777',
+                                width: '100%',
+                                borderWidth: 0.5,
+                                height: 0
+                            },
+
+                        }
+                    }
+                }
+            }
+            ],
+            xAxis: {
+                axisLabel: {show: false},
+                axisLine: {show: false},
+                splitLine: {show: false},
+                axisTick: {show: false},
+                min: -1,
+                max: 1
+            },
+            yAxis: {
+                axisLabel: {show: false},
+                axisLine: {show: false},
+                splitLine: {show: false},
+                axisTick: {show: false},
+                min: 0,
+                max: 2,
+                inverse: true
+            }
+        };
+        myChart2.setOption(option2);
+        window.addEventListener("resize", function () {
+          myChart.resize();
+          myChart2.resize();
+      });
+
+
+
+        if (dataLength == 0){clearInterval(timeTicket);} //如果取回的数据长度为0,停止ajax
+    }
+
+    myChart.showLoading(); // 首次显示加载动画
+
+
+    // 异步加载数据 （首次，get，显示6个数据）
+    $.get('/rqalpha/result/weather').done(update_mychart);
+
+
+    // 异步更新数据 （以后，定时post，取回1个数据）
+    var timeTicket = setInterval(function () {
+        $.post('/rqalpha/result/weather',{id: lastID,nm: number}).done(update_mychart);
+    }, 5000);
+
+
+</script>
+
+
+{% endblock %}
