@@ -42,6 +42,9 @@ class Strategy(db.Model):
     __tablename__ = 'strategies'
     id = db.Column(db.Integer, primary_key=True)
     strategyname = db.Column(db.String(64), index=True)
+    startdate = db.Column(db.Date)
+    enddate = db.Column(db.Date)
+    stock = db.Column(db.Integer)
     code = db.Column(db.UnicodeText)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))

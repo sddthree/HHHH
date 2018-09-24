@@ -52,19 +52,33 @@ border-width: 0 1px;
 {% block page_content %}
 
 
-<label for="meeting">约会日期：</label><input id="meeting" type="date" value="2014-01-13"/><div>
+<div>
 <div id="top" style="width: 100%; height: 1px;"></div>
 <div style="float: left;" id="menu" class="content">
 <div id="form">
-{{ wtf.quick_form(form) }}
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        {{ wtf.form_errors(form, hiddens=True) }}
+        <br>
+        <li style="list-style-type:none;">{{ form.name.label }} {{form.name}}</li>
+        <li style="list-style-type:none;">{{ form.start_date.label }} 
+            <div style="width: 100px;">{{ form.start_date }}</div> 
+            {{form.end_date.label }} 
+            <div style="width: 100px;">{{ form.end_date }}</div>
+            {{ form.stock.label }} 
+            <div style="width: 100px;">{{ form.stock }}</div>
+        </li>
+        <!--<li style="list-style-type:none;"></li>-->
+        <br>
+        <li style="list-style-type:none;">{{ form.source_code }}</li>
+        <li style="list-style-type:none;">{{ wtf.form_field(form.save_strategy) }}</li>
+        <li style="list-style-type:none;">{{ wtf.form_field(form.submit) }}</li>
+    </form>
 </div>
 </div>
 <div id="rightbar"
 style="width: 2px; background: #cccccc; cursor: e-resize; float: left;"></div>
 </div>
-
-
-
 
 
 
@@ -217,8 +231,6 @@ myChart2.setOption(option2);
         sharpe = "",
         maxDD = "",
         maxDDD = "",
-        alpha = "",
-        beta = "",
         number = 1,//pickle_record_number
         lastID = 0; // 哨兵，记录上次数据表中的最后id +1（下次查询只要>=lastID）
 
@@ -243,10 +255,8 @@ myChart2.setOption(option2);
         sharpe = data.sharpe
         maxDD = data.maxDD
         maxDDD = data.maxDDD
-        alpha = data.alpha
-        beta = data.beta
 
-        // 填入数据t
+        // 填入数据
         myChart.setOption({
             legend: {
             data:['portfolio','benchmark_portfolio']
@@ -275,10 +285,8 @@ myChart2.setOption(option2);
                         normal: {
                             formatter: [
                                 '{tc|Summary}{titleBg|}',
-                                '{tr|回测收益}' + "    " + '{tr|回测年化收益}' + "    " + '{tb|基准收益}' + "    " + '{tb|基准年化收益}' + "    " + '{tc|夏普比率}' + '    ' +'{tc|Alpha}' + '    ' + '{tc|Beta}',
-                                String(total_returns) + '          ' + String(annualized_returns) + '           ' + String(benchmark_total_returns) + '         ' + String(benchmark_annualized_returns) + '          ' + String(sharpe) + '     ' + String(alpha) + '     ' + String(beta),
-                                '{td|最大回撤' + '   ' + String(maxDD) + '}',
-                                '{td|最大回撤持续期' + '   ' + String(maxDDD) + '}',
+                                '{tr|回测收益}' + "    " + '{tr|回测年化收益}' + "    " + '{tb|基准收益}' + "    " + '{tb|基准年化收益}' + "    " + '{tc|夏普比率}',
+                                String(total_returns) + '          ' + String(annualized_returns) + '           ' + String(benchmark_total_returns) + '         ' + String(benchmark_annualized_returns) + '          ' + String(sharpe),
                             ].join('\n'),
                             rich: {
                                 titleBg: {
@@ -320,11 +328,6 @@ myChart2.setOption(option2);
                         tb:{
                             align:'center',
                             color:'#32e'
-                        },
-                        td:{
-                            align:'right',
-                            color:'#000',
-                            fontSize: 10
                         },
                         hr: {
                             borderColor: '#777',
@@ -371,13 +374,13 @@ myChart2.setOption(option2);
 
 
     // 异步加载数据 （首次，get，显示6个数据）
-    //$.get('/rqalpha/result/weather').done(update_mychart);
+    $.get('/rqalpha/result/weather').done(update_mychart);
 
 
     // 异步更新数据 （以后，定时post，取回1个数据）
     var timeTicket = setInterval(function () {
         $.post('/rqalpha/result/weather',{id: lastID,nm: number}).done(update_mychart);
-    }, 2500);
+    }, 5000);
 
 
 

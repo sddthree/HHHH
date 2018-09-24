@@ -12,7 +12,7 @@ from flask_login import login_required, current_user
 import pickle as pk
 import numpy as np
 import time
-
+import datetime
 name = None
 
 
@@ -21,35 +21,42 @@ name = None
 def result(strategyname):
     global name
     form = StrategyForm()
-
+    name = None
     if request.method == 'GET':
-        fname = strategyname
-        name = None
-        strategy = Strategy.query.filter_by(strategyname=strategyname,
-                                            author=current_user._get_current_object()).first_or_404()
-        code = strategy.code
-        form.source_code.data = code
-        return render_template('rqalpha/result.html', form=form, name=fname)
+        form.name.data = strategyname
+        strategy = Strategy.query.filter_by(strategyname=strategyname, author=current_user._get_current_object()).first_or_404()
+        form.start_date.data = strategy.startdate
+        form.end_date.data = strategy.enddate
+        form.stock.data = strategy.stock
+        form.source_code.data = strategy.code
+
     else:
         if form.validate_on_submit():
             text = form.source_code.data
             name = form.name.data
+            start_date = form.start_date.data
+            end_date = form.end_date.data
+            stock = form.stock.data
+
             if form.save_strategy.data == True:
-                strategy = Strategy.query.filter_by(strategyname=name,
-                                                    author=current_user._get_current_object()).first()
+                strategy = Strategy.query.filter_by(strategyname=name, author=current_user._get_current_object()).first()
                 if strategy is not None:
                     db.session.delete(strategy)
                     db.session.commit()
-                    db.session.add(Strategy(strategyname=name, code=text, author=current_user._get_current_object()))
+                    db.session.add(Strategy(strategyname=name, startdate=start_date, enddate=end_date, stock=stock, code=text, author=current_user._get_current_object()))
                     db.session.commit()
                 else:
-                    strategy = Strategy(strategyname=name, code=text, author=current_user._get_current_object())
+                    strategy = Strategy(strategyname=name, startdate=start_date, enddate=end_date, stock=stock, code=text, author=current_user._get_current_object())
                     db.session.add(strategy)
                     db.session.commit()
                 flash('Your strategy has been saved successfully.')
-            p = Process(target=k_strategy, args=(text, name, "2008-07-01", "2018-07-01", 100000))
+            for i in range(20):
+                my_file = 'C:/Users/wmy_sz/Desktop/uicquant4/app/static/test-result/'+name+str(i-1)
+                if os.path.exists(my_file):
+                    os.remove(my_file)
+            p = Process(target=k_strategy, args=(text, name, datetime.datetime.strftime(start_date, "%Y-%m-%d"), datetime.datetime.strftime(end_date, "%Y-%m-%d"), stock))
             p.start()
-        return render_template('rqalpha/result.html', form=form, name=name)
+    return render_template('rqalpha/result.html', form=form)
 
 
 @rqalpha.route('/result', methods=['GET', 'POST'])
@@ -87,28 +94,33 @@ def handle_bar(context, bar_dict):
     if form.validate_on_submit():
         text = form.source_code.data
         name = form.name.data
+        start_date = form.start_date.data
+        end_date = form.end_date.data
+        stock = form.stock.data
+
         if form.save_strategy.data == True:
             strategy = Strategy.query.filter_by(strategyname=name, author=current_user._get_current_object()).first()
             if strategy is not None:
                 db.session.delete(strategy)
                 db.session.commit()
-                db.session.add(Strategy(strategyname=name, code=text, author=current_user._get_current_object()))
+                db.session.add(Strategy(strategyname=name, startdate=start_date, enddate=end_date, stock=stock, code=text, author=current_user._get_current_object()))
                 db.session.commit()
             else:
-                strategy = Strategy(strategyname=name, code=text, author=current_user._get_current_object())
+                strategy = Strategy(strategyname=name, startdate=start_date, enddate=end_date, stock=stock, code=text, author=current_user._get_current_object())
                 db.session.add(strategy)
                 db.session.commit()
             flash('Your strategy has been saved successfully.')
         for i in range(20):
-            my_file = 'C:/Users/17600/Desktop/uicquant3/app/static/test-result/'+name+str(i-1)
+            my_file = 'C:/Users/wmy_sz/Desktop/uicquant4/app/static/test-result/'+name+str(i-1)
             if os.path.exists(my_file):
-            #删除文件，可使用以下两种方法。
                 os.remove(my_file)
-                #os.unlink(my_file)
-        p = Process(target=k_strategy, args=(text, name, "2008-07-01", "2018-07-01", 100000))
+        p = Process(target=k_strategy, args=(text, name, datetime.datetime.strftime(start_date, "%Y-%m-%d"), datetime.datetime.strftime(end_date, "%Y-%m-%d"), stock))
         p.start()
     else:
         form.source_code.data = code
+        form.start_date.data = datetime.date(2016,1,4)
+        form.end_date.data = datetime.date(2016,10,4)
+        form.stock.data = 1000000
     return render_template('rqalpha/result.html', form=form)
 
 
@@ -120,20 +132,20 @@ def k_strategy(code, filename, start_date, end_date, account_stock, benchmark="0
                        "accounts": {"stock": account_stock}},
               "extra": {"log_level": "verbose", },
               "mod": {"sys_analyser": {"enabled": True,
-                                       "plot_save_file": "C:/Users/17600/Desktop/uicquant3/app/static/test-result/" + filename ,
-                                       "output_file": "C:/Users/17600/Desktop/uicquant3/app/static/test-result/" + filename }}}
+                                        "output_file": "C:/Users/wmy_sz/Desktop/uicquant4/app/static/test-result/" + filename }}}
+                                       #"plot_save_file": "C:/Users/17600/Desktop/uicquant3/app/static/test-result/" + filename ,
+
 
     run_code(code, config)
 
 
 def query_db(p):
     try:
-        with open('C:/Users/17600/Desktop/uicquant3/app/static/test-result/'+name+str(p), 'rb') as f:
+        with open('C:/Users/wmy_sz/Desktop/uicquant4/app/static/test-result/'+name+str(p), 'rb') as f:
             m = pk.load(f)
     except FileNotFoundError:
-        with open('C:/Users/17600/Desktop/uicquant3/app/static/test-result/'+name+str(p-1), 'rb') as f:
+        with open('C:/Users/wmy_sz/Desktop/uicquant4/app/static/test-result/'+name+str(p-1), 'rb') as f:
             m = pk.load(f)
-
     return m
 
 
@@ -141,8 +153,8 @@ def query_db(p):
 @rqalpha.route("/result/weather", methods=["GET", "POST"])
 def weather():
     if name != None:
-        
         if request.method == "GET":
+            time.sleep(2)
             form = StrategyForm()
             print(form.name.data)
             m = query_db(p=1)
@@ -152,8 +164,6 @@ def weather():
             benchmark_total_returns = summary['benchmark_total_returns']
             benchmark_annualized_returns = summary['benchmark_annualized_returns']
             sharpe = summary['sharpe']
-            alpha = summary['alpha']
-            beta = summary['beta']
 
             portfolio_1 = m['portfolio'][0:300]
             benchmark_portfolio = m['benchmark_portfolio'][0:300]
@@ -175,9 +185,9 @@ def weather():
             max_ddd_start_day = max_dd_start
             max_ddd_end_day = len(xs) - 1 if tmp.max() < 0 else np.argmax(tmp) + max_dd_end
 
-            max_dd_info = "{}~{}, {} days".format(str(index[max_dd_start]), str(index[max_dd_end]),
+            max_dd_info = "MaxDD  {}~{}, {} days".format(str(index[max_dd_start]), str(index[max_dd_end]),
                                                          (index[max_dd_end] - index[max_dd_start]).days)
-            max_ddd_info = "{}~{}, {} days".format(str(index[max_ddd_start_day]), str(index[max_ddd_end_day]),
+            max_ddd_info = "MaxDDD {}~{}, {} days".format(str(index[max_ddd_start_day]), str(index[max_ddd_end_day]),
                                                           (index[max_ddd_end_day] - index[max_ddd_start_day]).days)
 
         if request.method == "POST":
@@ -193,8 +203,6 @@ def weather():
             benchmark_total_returns = summary['benchmark_total_returns']
             benchmark_annualized_returns = summary['benchmark_annualized_returns']
             sharpe = summary['sharpe']
-            alpha = summary['alpha']
-            beta = summary['beta']
 
             portfolio_1 = m['portfolio'][i:i + 300]
             benchmark_portfolio = m['benchmark_portfolio'][i:i + 300]
@@ -216,16 +224,13 @@ def weather():
             max_ddd_start_day = max_dd_start
             max_ddd_end_day = len(xs) - 1 if tmp.max() < 0 else np.argmax(tmp) + max_dd_end
 
-            max_dd_info = "{}~{}, {} days".format(str(index[max_dd_start]), str(index[max_dd_end]),
+            max_dd_info = "MaxDD  {}~{}, {} days".format(str(index[max_dd_start]), str(index[max_dd_end]),
                                                          (index[max_dd_end] - index[max_dd_start]).days)
-            max_ddd_info = "{}~{}, {} days".format(str(index[max_ddd_start_day]), str(index[max_ddd_end_day]),
+            max_ddd_info = "MaxDDD {}~{}, {} days".format(str(index[max_ddd_start_day]), str(index[max_ddd_end_day]),
                                                           (index[max_ddd_end_day] - index[max_ddd_start_day]).days)
-
-            my_file = 'C:/Users/17600/Desktop/uicquant3/app/static/test-result/'+name+str(p-1)
+            my_file = 'C:/Users/wmy_sz/Desktop/uicquant4/app/static/test-result/'+name+str(p-1)
             if os.path.exists(my_file):
-            #删除文件，可使用以下两种方法。
                 os.remove(my_file)
-                #os.unlink(my_file)
     else:
         date = []
         v1 = []
@@ -237,8 +242,6 @@ def weather():
         sharpe = ""
         max_dd_info = ""
         max_ddd_info = ""
-        alpha = ""
-        beta = ""
 
     return jsonify(month=date,
                    evaporation=v1,
@@ -249,6 +252,4 @@ def weather():
                    benchmark_annualized_returns = benchmark_annualized_returns,
                    sharpe = sharpe,
                    maxDD=max_dd_info,
-                   maxDDD=max_ddd_info,
-                   alpha=alpha,
-                   beta=beta)  # 返回json格式
+                   maxDDD=max_ddd_info)  # 返回json格式
