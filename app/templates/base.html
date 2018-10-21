@@ -4,14 +4,14 @@
 
 
 <div class="whole_container">
-    {% block head %}
-    {{ super() }}
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-    {% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+{% endblock %}
 
-    {% block navbar %}
-    <style type="text/css">
+{% block navbar %}
+<style type="text/css">
     .whole_container{
         display: flex;
         flex-direction: column;
