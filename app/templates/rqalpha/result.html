@@ -7,9 +7,9 @@
 <script src="{{ url_for('static', filename='jquery-3.1.1.js') }}"></script>
 <script src="{{ url_for('static', filename='echarts.js') }}"></script>
 <script src="http://code.jquery.com/jquery-1.8.0.min.js" type="text/javascript"></script>
-
+<script src="../../static/ace/build/src/ace.js" type="text/javascript"></script>
+<script src="../../static/ace/build/src/mode-python.js" type="text/javascript"></script>
 {{ super() }}
-{{ codemirror.include_codemirror() }} 
 {% endblock %}
 
 {% block page_content %}
@@ -22,9 +22,9 @@
     width: 1173px;
     height: auto;
 }
-.code-area{
-    width: auto;
-    height:auto;
+#code-area{
+    width: 600px;
+    height:450px;
     border-right:1px;
     border-right-style: solid;
     border-right-color: #666;
@@ -50,48 +50,36 @@
     height: 50px;
     border-color: #666;
     border-style: solid;
-    border-radius: : 1px;     
+    border-radius: : 1px;   
+    display: flex;
+    flex-direction: row;  
 }
 .container{
     display: flex;
     flex-direction: column;
 }
 
-grid:{
-
-top:"50px",
-
-left:"5px",
-
-right:"5px",
-
-bottom:"50px",
-
-backgroundColor: '#fff',
-
-width:"auto", //图例宽度
-
-height:"100%", //图例高度
-
-}
 
 
 </style>
 <div class="container">
     <div class="selection-area">
-    </div>
-    <div class="result-container">
-        <div class='code-area'>
-            <textarea rows="10" cols="30">
-                我是一个文本框。
-            </textarea>
-        </div>
 
-        <div class='picture'>
-            <div id="main2"></div>
-            <div id="main"></div>
-        </div>
+        <form method="POST" name="form1">
+           <p>Please input your strategy name:<input type="text" name="sname" />&nbsp;From<input type="text" name="startdate" />&nbsp;To<input type="text" name="enddate" />&nbsp;Stock ¥<input type="text" name="stock" />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="button" name="submit" value="Submit" onclick="transfer_data(form1.sname,form1.startdate,form1.enddate,form1.stock)"/></p>
+           
+       </form>
+
+   </div>
+   <div class="result-container">
+    <div id='code-area'>
     </div>
+
+    <div class='picture'>
+        <div id="main2"></div>
+        <div id="main"></div>
+    </div>
+</div>
 </div>
 
 
@@ -393,6 +381,44 @@ height:"100%", //图例高度
     var timeTicket = setInterval(function () {
         $.post('/rqalpha/result/weather',{id: lastID,nm: number}).done(update_mychart);
     }, 5000);
+
+
+    //以下是ace-editor功能
+    var editor = ace.edit('code-area');
+    editor.setTheme("ace/theme/chrome");
+    editor.getSession().setMode("ace/mode/python");
+    
+    var editorValue=`
+# 可以自己import我们平台支持的第三方python模块，比如pandas、numpy等。
+
+# 在这个方法中编写任何的初始化逻辑。context对象将会在你的算法策略的任何方法之间做传递。
+def init(context):
+    context.s1 = "000001.XSHE"
+    # 实时打印日志
+    logger.info("Interested at stock: " + str(context.s1))
+
+# before_trading此函数会在每天交易开始前被调用，当天只会被调用一次
+def before_trading(context, bar_dict):
+    pass
+
+
+# 你选择的证券的数据更新将会触发此段逻辑，例如日或分钟历史数据切片或者是实时数据切片更新
+def handle_bar(context, bar_dict):
+    # 开始编写你的主要的算法逻辑javascript:void(0)
+
+    # bar_dict[order_book_id] 可以拿到某个证券的bar信息
+    # context.portfolio 可以拿到现在的投资组合状态信息
+
+    # 使用order_shares(id_or_ins, amount)方法进行落单
+
+    # TODO: 开始编写你的算法吧！
+    order_shares(context.s1, 1000)
+    `; 
+    editor.setValue(editorValue);
+    editor.moveCursorTo(0, 0);
+
+
+
 
 
 </script>
